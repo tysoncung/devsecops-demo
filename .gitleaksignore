@@ -4,3 +4,4 @@
 
 # Since these are demo secrets, we'll rely on the allowlist in .gitleaks.toml
 # rather than using the .gitleaksignore file
+# The src/index.js file contains demo secrets that are whitelisted

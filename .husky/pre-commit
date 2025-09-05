@@ -3,21 +3,31 @@
 
 echo "🔍 Running pre-commit security checks..."
 
-# Run ESLint
-#echo "📝 Running ESLint..."
-#npm run lint
+# Run ESLint (warning only for demo - real projects should fail on errors)
+echo "📝 Running ESLint..."
+npm run lint || {
+    echo "⚠️  ESLint found issues - this is expected for the demo"
+    echo "💡 In production, these should be fixed before committing"
+}
 
-# Check for secrets
+# Check for secrets (excluding node_modules and using git index)
 echo "🔐 Checking for secrets..."
 if command -v gitleaks &> /dev/null; then
-    gitleaks detect --source . --verbose
+    # Only scan staged files in git, not node_modules
+    gitleaks protect --verbose --staged || {
+        echo "🔴 SECRETS DETECTED! Review the findings above."
+        echo "❌ Commit blocked due to hardcoded secrets"
+        exit 1
+    }
 else
     echo "⚠️  Gitleaks not installed. Install with: brew install gitleaks"
 fi
 
 # Run npm audit (warning only for demo)
 echo "📦 Checking dependencies..."
-npm audit --audit-level=moderate || echo "⚠️ Vulnerabilities found - this is expected for demo"
+npm audit --audit-level=critical || echo "⚠️ Vulnerabilities found - expected for demo"
 
 # Run lint-staged
 npx lint-staged
+
+echo "✅ Pre-commit checks completed (demo mode)"

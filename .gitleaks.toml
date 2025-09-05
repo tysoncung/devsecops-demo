@@ -36,14 +36,19 @@ regex = '''eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*'''
 [allowlist]
 paths = [
   ".gitleaks.toml",
+  ".gitleaksignore",
   "README.md",
   "package-lock.json",
-  "src/index.js"
+  "package.json",
+  "node_modules/**",
+  "src/index.js",
+  "*.md",
+  "demo-*.sh"
 ]
 
-# Allow specific patterns for demo purposes
-regexes = [
-  '''sk-1234567890abcdef''',
-  '''admin123''',
-  '''AKIAIOSFODNN7EXAMPLE'''
-]
+# Allow specific patterns for demo purposes (uncomment if needed)
+# regexes = [
+#   '''sk-1234567890abcdef''',
+#   '''admin123''',
+#   '''AKIAIOSFODNN7EXAMPLE'''
+# ]

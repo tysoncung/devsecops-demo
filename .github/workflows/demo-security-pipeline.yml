@@ -76,6 +76,43 @@ jobs:
             echo "vulnerability_count=$VULN_COUNT" >> $GITHUB_OUTPUT
           fi
       
+      # Snyk Security Scan
+      - name: Snyk Vulnerability Scan
+        id: snyk
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        continue-on-error: true
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --json-file-output=snyk-results.json
+      
+      # OWASP Dependency Check
+      - name: OWASP Dependency Check
+        id: owasp
+        continue-on-error: true
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'devsecops-demo'
+          path: '.'
+          format: 'HTML'
+          args: >
+            --enableRetired
+            --enableExperimental
+            --prettyPrint
+      
+      # CodeQL Analysis
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        continue-on-error: true
+        with:
+          languages: javascript
+      
+      - name: Perform CodeQL Analysis
+        id: codeql
+        uses: github/codeql-action/analyze@v2
+        continue-on-error: true
+      
       # SAST with Semgrep
       - name: Semgrep SAST Analysis
         id: semgrep
@@ -142,9 +179,32 @@ jobs:
           
           # Dependency Audit Results
           if [ "${{ steps.audit.outputs.vulnerabilities_found }}" == "true" ]; then
-            echo "| Dependency Audit | ⚠️ Vulnerabilities | ${{ steps.audit.outputs.vulnerability_count }} vulnerabilities found |" >> $GITHUB_STEP_SUMMARY
+            echo "| NPM Audit | ⚠️ Vulnerabilities | ${{ steps.audit.outputs.vulnerability_count }} vulnerabilities found |" >> $GITHUB_STEP_SUMMARY
           else
-            echo "| Dependency Audit | ✅ Secure | No vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+            echo "| NPM Audit | ✅ Secure | No vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Snyk Results
+          if [ "${{ steps.snyk.outcome }}" == "success" ]; then
+            echo "| Snyk | ✅ Scanned | Dependency analysis completed |" >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ steps.snyk.outcome }}" == "skipped" ]; then
+            echo "| Snyk | ⏭️ Skipped | Configure SNYK_TOKEN secret to enable |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Snyk | ⚠️ Issues Found | Vulnerabilities detected |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # OWASP Dependency Check Results
+          if [ "${{ steps.owasp.outcome }}" == "success" ]; then
+            echo "| OWASP Check | ✅ Completed | Dependency analysis completed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| OWASP Check | ⚠️ Issues Found | Check report for details |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # CodeQL Results
+          if [ "${{ steps.codeql.outcome }}" == "success" ]; then
+            echo "| CodeQL | ✅ Completed | Advanced SAST analysis completed |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| CodeQL | ⚠️ Analysis | Security patterns detected |" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Semgrep Results

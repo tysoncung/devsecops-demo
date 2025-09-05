@@ -39,8 +39,7 @@ paths = [
   ".gitleaksignore",
   "README.md",
   "package-lock.json",
-  "package.json",
-  "src/index.js"
+  "package.json"
 ]
 
 # Allow specific patterns for demo purposes (uncomment if needed)

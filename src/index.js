@@ -14,6 +14,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const API_KEY = 'sk-1234567890abcdef';
 const DB_PASSWORD = 'admin123';
 const AWS_SECRET = 'AKIAIOSFODNN7EXAMPLE';
+const HOST = '192.168.1.1';
 
 // VULNERABILITY 2: SQL Injection vulnerability
 app.get('/user', (req, res) => {

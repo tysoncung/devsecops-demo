@@ -71,7 +71,22 @@ install_tool "trivy" "aquasecurity/trivy/trivy" "trivy"
 # Install semgrep
 if ! command_exists semgrep; then
     echo -e "${YELLOW}Installing Semgrep...${NC}"
-    python3 -m pip install semgrep
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # For macOS, use pipx or brew
+        if command_exists pipx; then
+            pipx install semgrep
+        elif command_exists brew; then
+            brew install semgrep
+        else
+            echo -e "${YELLOW}Installing pipx first...${NC}"
+            brew install pipx
+            pipx ensurepath
+            pipx install semgrep
+        fi
+    else
+        # For Linux, try pip with --user flag
+        python3 -m pip install --user semgrep
+    fi
 fi
 
 echo ""

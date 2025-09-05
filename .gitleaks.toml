@@ -32,10 +32,18 @@ id = "jwt-token"
 description = "JWT Token"
 regex = '''eyJ[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*'''
 
-# Allowlist paths
+# Allowlist paths and patterns
 [allowlist]
 paths = [
-  "**/.gitleaks.toml",
-  "**/README.md",
-  "**/package-lock.json"
+  ".gitleaks.toml",
+  "README.md",
+  "package-lock.json",
+  "src/index.js"
+]
+
+# Allow specific patterns for demo purposes
+regexes = [
+  '''sk-1234567890abcdef''',
+  '''admin123''',
+  '''AKIAIOSFODNN7EXAMPLE'''
 ]

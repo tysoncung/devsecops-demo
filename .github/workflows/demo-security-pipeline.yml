@@ -92,11 +92,13 @@ jobs:
         continue-on-error: true
         run: |
           echo "🐳 Building Docker image..."
-          # Create healthcheck file
-          cat << 'EOF' > healthcheck.js
+          # Create healthcheck file if it doesn't exist
+          if [ ! -f healthcheck.js ]; then
+            cat << 'EOF' > healthcheck.js
           console.log('Health check OK');
           process.exit(0);
           EOF
+          fi
           
           # Build image
           docker build -t devsecops-demo:test . 2>&1 | tee docker-build.txt
@@ -125,7 +127,7 @@ jobs:
           echo "|----------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
           
           # ESLint Results
-          if [ "${{ steps.eslint.outputs.eslint_errors }}" != "" ]; then
+          if [ "${{ steps.eslint.outputs.eslint_errors }}" != "" ] && [ "${{ steps.eslint.outputs.eslint_errors }}" != "0" ]; then
             echo "| ESLint | ⚠️ Issues Found | ${{ steps.eslint.outputs.eslint_errors }} errors, ${{ steps.eslint.outputs.eslint_warnings }} warnings |" >> $GITHUB_STEP_SUMMARY
           else
             echo "| ESLint | ✅ Completed | Security analysis completed |" >> $GITHUB_STEP_SUMMARY

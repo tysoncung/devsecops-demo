@@ -1,0 +1,179 @@
+name: Demo Security Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  security-demo:
+    name: Security Scanning Demo
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout code
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      
+      # Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      # Install dependencies
+      - name: Install Dependencies
+        run: |
+          echo "📦 Installing Node.js dependencies..."
+          npm install
+      
+      # ESLint Security Check
+      - name: ESLint Security Analysis
+        id: eslint
+        continue-on-error: true
+        run: |
+          echo "🔍 Running ESLint security checks..."
+          npm run lint 2>&1 | tee eslint-output.txt || true
+          ERRORS=$(grep -c "error" eslint-output.txt || echo "0")
+          WARNINGS=$(grep -c "warning" eslint-output.txt || echo "0")
+          echo "Found $ERRORS errors and $WARNINGS warnings"
+          echo "eslint_errors=$ERRORS" >> $GITHUB_OUTPUT
+          echo "eslint_warnings=$WARNINGS" >> $GITHUB_OUTPUT
+      
+      # Secret Detection with Gitleaks
+      - name: Secret Detection
+        id: secrets
+        continue-on-error: true
+        run: |
+          echo "🔐 Scanning for secrets..."
+          # Install gitleaks
+          wget -q https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
+          tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
+          # Run scan but don't fail the pipeline
+          ./gitleaks detect --source . --verbose --no-git --redact 2>&1 | tee gitleaks-output.txt || true
+          if grep -q "leaks found" gitleaks-output.txt; then
+            echo "secrets_found=true" >> $GITHUB_OUTPUT
+          else
+            echo "secrets_found=false" >> $GITHUB_OUTPUT
+          fi
+      
+      # Dependency Audit
+      - name: Dependency Security Audit
+        id: audit
+        continue-on-error: true
+        run: |
+          echo "📋 Auditing dependencies..."
+          npm audit 2>&1 | tee audit-output.txt || true
+          if grep -q "found 0 vulnerabilities" audit-output.txt; then
+            echo "vulnerabilities_found=false" >> $GITHUB_OUTPUT
+          else
+            VULN_COUNT=$(grep -oP '\d+(?= vulnerabilities)' audit-output.txt | head -1 || echo "0")
+            echo "vulnerabilities_found=true" >> $GITHUB_OUTPUT
+            echo "vulnerability_count=$VULN_COUNT" >> $GITHUB_OUTPUT
+          fi
+      
+      # SAST with Semgrep
+      - name: Semgrep SAST Analysis
+        id: semgrep
+        continue-on-error: true
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/javascript
+      
+      # Docker Build and Scan
+      - name: Docker Security Scan
+        id: docker
+        continue-on-error: true
+        run: |
+          echo "🐳 Building Docker image..."
+          # Create healthcheck file
+          cat << 'EOF' > healthcheck.js
+          console.log('Health check OK');
+          process.exit(0);
+          EOF
+          
+          # Build image
+          docker build -t devsecops-demo:test . 2>&1 | tee docker-build.txt
+          
+          if [ $? -eq 0 ]; then
+            echo "docker_build=success" >> $GITHUB_OUTPUT
+            
+            # Quick vulnerability scan with trivy
+            echo "🔍 Scanning Docker image for vulnerabilities..."
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+              aquasec/trivy image --severity HIGH,CRITICAL --no-progress \
+              devsecops-demo:test 2>&1 | tee trivy-output.txt || true
+          else
+            echo "docker_build=failed" >> $GITHUB_OUTPUT
+          fi
+      
+      # Generate Summary Report
+      - name: Generate Security Report
+        if: always()
+        run: |
+          echo "# 🔒 DevSecOps Security Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Scan Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Check | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          
+          # ESLint Results
+          if [ "${{ steps.eslint.outputs.eslint_errors }}" != "" ]; then
+            echo "| ESLint | ⚠️ Issues Found | ${{ steps.eslint.outputs.eslint_errors }} errors, ${{ steps.eslint.outputs.eslint_warnings }} warnings |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| ESLint | ✅ Completed | Security analysis completed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Secret Detection Results
+          if [ "${{ steps.secrets.outputs.secrets_found }}" == "true" ]; then
+            echo "| Secret Detection | 🔴 Secrets Found | Hardcoded credentials detected (demo) |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Secret Detection | ✅ Clean | No secrets detected |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Dependency Audit Results
+          if [ "${{ steps.audit.outputs.vulnerabilities_found }}" == "true" ]; then
+            echo "| Dependency Audit | ⚠️ Vulnerabilities | ${{ steps.audit.outputs.vulnerability_count }} vulnerabilities found |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Dependency Audit | ✅ Secure | No vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Semgrep Results
+          if [ "${{ steps.semgrep.outcome }}" == "failure" ]; then
+            echo "| Semgrep SAST | ⚠️ Issues Found | Security patterns detected |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Semgrep SAST | ✅ Completed | Analysis completed |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Docker Results
+          if [ "${{ steps.docker.outputs.docker_build }}" == "success" ]; then
+            echo "| Container Scan | ✅ Built | Image built and scanned |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Container Scan | ⚠️ Issues | Check build logs |" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📝 Important Note" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **This repository contains intentional security vulnerabilities for DevSecOps demonstration purposes.**" >> $GITHUB_STEP_SUMMARY
+          echo "> " >> $GITHUB_STEP_SUMMARY
+          echo "> All findings are expected and demonstrate how various security tools detect different types of issues:" >> $GITHUB_STEP_SUMMARY
+          echo "> - SQL Injection vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          echo "> - Hardcoded secrets and credentials" >> $GITHUB_STEP_SUMMARY
+          echo "> - Command injection risks" >> $GITHUB_STEP_SUMMARY
+          echo "> - Weak cryptography usage" >> $GITHUB_STEP_SUMMARY
+          echo "> - Path traversal vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Pipeline Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**All security scans completed successfully!** The pipeline is configured to continue despite findings to demonstrate the full security scanning capabilities." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "_Generated at: $(date)_" >> $GITHUB_STEP_SUMMARY

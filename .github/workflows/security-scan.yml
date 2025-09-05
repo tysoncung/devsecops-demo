@@ -44,18 +44,30 @@ jobs:
           fetch-depth: 0
       
       - name: Run Gitleaks
+        id: gitleaks
         uses: gitleaks/gitleaks-action@v2
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_SUMMARY: true
       
       - name: Secret Scan Summary
         if: always()
         run: |
-          echo "### Secret Detection Report" >> $GITHUB_STEP_SUMMARY
-          echo "Gitleaks scanned for hardcoded secrets and credentials" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔐 Secret Detection Report" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚠️ Found hardcoded secrets (intentional for demo purposes)" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.gitleaks.outcome }}" == "failure" ]; then
+            echo "⚠️ **Secrets Detected** (intentional for demo)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Found hardcoded credentials in the code:" >> $GITHUB_STEP_SUMMARY
+            echo "- API Keys" >> $GITHUB_STEP_SUMMARY
+            echo "- Passwords" >> $GITHUB_STEP_SUMMARY
+            echo "- AWS Secrets" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ This is expected - demonstrating secret detection capabilities" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No secrets detected" >> $GITHUB_STEP_SUMMARY
+          fi
 
   # CodeQL Analysis
   codeql:
@@ -94,10 +106,25 @@ jobs:
         run: npm install
       
       - name: Run npm audit
+        id: npm_audit
+        continue-on-error: true
         run: |
-          npm audit --audit-level=moderate || true
-          echo "### Dependency Audit Report" >> $GITHUB_STEP_SUMMARY
-          echo "npm audit checked for vulnerable dependencies" >> $GITHUB_STEP_SUMMARY
+          npm audit --audit-level=moderate 2>&1 | tee audit-results.txt || true
+          
+      - name: Generate Audit Summary
+        if: always()
+        run: |
+          echo "### 📦 Dependency Audit Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if grep -q "found 0 vulnerabilities" audit-results.txt 2>/dev/null; then
+            echo "✅ No vulnerabilities found in dependencies" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Vulnerabilities found in dependencies**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Run \`npm audit\` locally to see details" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "This is expected for the demo - showing dependency scanning capabilities" >> $GITHUB_STEP_SUMMARY
+          fi
       
       - name: Check with Snyk (if token available)
         if: ${{ secrets.SNYK_TOKEN != '' }}

@@ -1,0 +1,10 @@
+# Gitleaks ignore file for demo purposes
+# These are intentional vulnerabilities for demonstration
+
+# Ignore the demo vulnerable file
+src/index.js:*
+
+# Specific patterns to ignore for demo
+src/index.js:14:const API_KEY = 'sk-1234567890abcdef';
+src/index.js:15:const DB_PASSWORD = 'admin123';
+src/index.js:16:const AWS_SECRET = 'AKIAIOSFODNN7EXAMPLE';

@@ -59,7 +59,7 @@ app.post('/hash', (req, res) => {
 
 // VULNERABILITY 6: Missing Security Headers
 app.get('/', (req, res) => {
-    res.send('<h1>DevSecOps Demo App</h1><script>alert("XSS")</script>');
+    res.send('<h2>DevSecOps Demo App</h2><script>alert("XSS")</script>');
 });
 
 // VULNERABILITY 7: Eval usage (code injection)

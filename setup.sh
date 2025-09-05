@@ -91,7 +91,12 @@ fi
 
 echo ""
 echo "📦 Installing Node.js dependencies..."
-npm install
+if [ -f package.json ]; then
+    npm install
+else
+    echo -e "${RED}Error: package.json not found${NC}"
+    exit 1
+fi
 
 echo ""
 echo "🪝 Setting up Git hooks with Husky..."

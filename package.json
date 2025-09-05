@@ -1,0 +1,47 @@
+{
+  "name": "devsecops-demo",
+  "version": "1.0.0",
+  "description": "DevSecOps Demo Application with Security Tools Integration",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "security": "npm audit",
+    "snyk": "snyk test",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "body-parser": "^1.19.0",
+    "mongoose": "^5.9.10",
+    "bcrypt": "^5.0.0",
+    "jsonwebtoken": "^8.5.1",
+    "dotenv": "^8.2.0",
+    "mysql": "^2.18.1",
+    "lodash": "^4.17.15"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-plugin-security": "^1.5.0",
+    "jest": "^27.0.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.0.0",
+    "@commitlint/cli": "^17.0.0",
+    "@commitlint/config-conventional": "^17.0.0",
+    "snyk": "^1.1000.0"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  }
+}

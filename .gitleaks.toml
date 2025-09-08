@@ -40,7 +40,6 @@ paths = [
   "README.md",
   "package-lock.json",
   "package.json",
-  "src/index.js"
 ]
 
 # Allow specific patterns for demo purposes (uncomment if needed)

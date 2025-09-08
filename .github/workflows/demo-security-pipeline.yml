@@ -103,14 +103,14 @@ jobs:
       
       # CodeQL Analysis
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         continue-on-error: true
         with:
           languages: javascript
       
       - name: Perform CodeQL Analysis
         id: codeql
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
         continue-on-error: true
       
       # SAST with Semgrep

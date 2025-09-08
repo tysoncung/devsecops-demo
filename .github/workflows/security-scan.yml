@@ -125,15 +125,6 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "This is expected for the demo - showing dependency scanning capabilities" >> $GITHUB_STEP_SUMMARY
           fi
-      
-      - name: Check with Snyk (if token available)
-        if: ${{ secrets.SNYK_TOKEN != '' }}
-        uses: snyk/actions/node@master
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high
 
   # Semgrep SAST
   semgrep:

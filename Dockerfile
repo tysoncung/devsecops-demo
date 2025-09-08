@@ -7,8 +7,8 @@ WORKDIR /usr/src/app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (skip prepare script that runs husky)
+RUN npm ci --only=production --ignore-scripts
 
 # Production stage
 FROM node:18-alpine

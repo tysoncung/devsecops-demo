@@ -43,8 +43,8 @@ paths = [
 ]
 
 # Allow specific patterns for demo purposes
+# We intentionally keep AKIAIOSFODNN7EXAMPLE detectable to show Gitleaks is working
 regexes = [
   '''sk-1234567890abcdef''',
-  '''admin123''',
-  '''AKIAIOSFODNN7EXAMPLE'''
+  '''admin123'''
 ]

@@ -1,5 +1,6 @@
 # Multi-stage build for security
-FROM node:18-alpine AS builder
+# Using an older version with known CVEs for demo purposes
+FROM node:16-alpine3.14 AS builder
 
 # Create app directory
 WORKDIR /usr/src/app
@@ -11,7 +12,8 @@ COPY package*.json ./
 RUN npm ci --only=production --ignore-scripts
 
 # Production stage
-FROM node:18-alpine
+# Using an older version with known CVEs for demo purposes
+FROM node:16-alpine3.14
 
 # Security: Run as non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -24,10 +26,9 @@ WORKDIR /usr/src/app
 COPY --from=builder --chown=nodejs:nodejs /usr/src/app/node_modules ./node_modules
 COPY --chown=nodejs:nodejs . .
 
-# Security: Remove unnecessary packages
-RUN apk update && \
-    apk upgrade && \
-    rm -rf /var/cache/apk/*
+# Intentionally not upgrading packages to keep CVEs for demo
+# In production, you would uncomment the following:
+# RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
 
 # Switch to non-root user
 USER nodejs
